@@ -1,0 +1,21 @@
+{
+  "usingMultipleOrigins": true,
+  "origins": [
+    {
+      "name": "xxx",
+      "originUrl": "http://xxx/api-docs"
+    },
+    {
+      "name": "xxx2",
+      "originUrl": "https://xxx2/api-docs"
+    }
+  ],
+  "outDir": "./src/pont",
+  "prettierConfig": {
+    "semi": false,
+    "singleQuote": true,
+    "tabWidth": 2,
+    "trailingComma": "all"
+  },
+  "templatePath": "./pontTemplate"
+}

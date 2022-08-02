@@ -1,0 +1,22 @@
+{
+  "name": "jw-auto-prot",
+  "version": "0.0.1",
+  "description": "auto port",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jianwuG/jw-auto-prot.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jianwuG/jw-auto-prot/issues"
+  },
+  "homepage": "https://github.com/jianwuG/jw-auto-prot#readme",
+  "dependencies": {
+    "pont-engine": "^1.3.3"
+  }
+}
