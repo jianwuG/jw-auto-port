@@ -1,0 +1,27 @@
+{
+  "name": "jw-auto-prot",
+  "version": "0.0.2",
+  "description": "auto-prot",
+  "main": "index.js",
+  "dependencies": {
+    "axios": "^0.27.2"
+  },
+  "devDependencies": {
+    "prettier": "^2.7.1",
+    "vitepress": "^1.0.0-alpha.4"
+  },
+  "scripts": {
+    "prettier": "prettier --write \"src/**/**/*.{js,jsx,vue,tsx,json,css,scss,less,md}\"",
+    "api": "node ./config/apis/auto-port.js && npm run prettier "
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jianwuG/jw-auto-prot.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jianwuG/jw-auto-prot/issues"
+  },
+  "homepage": "https://github.com/jianwuG/jw-auto-prot#readme"
+}
