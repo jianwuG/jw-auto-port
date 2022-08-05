@@ -34,16 +34,23 @@ const createApi = () => {
     checkOutputDirExit()
     apiConfig.apiList.forEach(async api => {
         if (api.isCreate) {
-            const result = await axios.get(api.swaggerUrl) //真实请求swaggerUrl地址
-            const data = result.data
-            // const data = api.swaggerUrl  // 当前项目本地文件演示
-            parseData(data, api.outputDir)
+            try {
+                ////真实请求swaggerUrl地址
+                // const result = await axios.get(api.swaggerUrl) 
+                // const data = result.data
+
+                //// 当前项目本地文件演示
+                const data = api.swaggerUrl
+                parseData(data, api.outputDir)
+            } catch (err) {
+                console.log(err)
+            }
         }
     })
 }
 
 /**
- * 处理paths对象
+ * 处理paths对象,生成基本机构的JSON对象
  * @param {*} path 
  */
 const handlePath = (path) => {
@@ -72,9 +79,7 @@ const handlePath = (path) => {
         if (!apiOptions[belongModule]) {
             apiOptions[belongModule] = []
         }
-        else {
-            apiOptions[belongModule].push(apiInfo)
-        }
+        apiOptions[belongModule].push(apiInfo)
     })
     return apiOptions
 }
@@ -150,7 +155,11 @@ const getRealType = (schema) => {
 
 }
 
-
+/**
+ * 获取返回data
+ * @param {*} responses 
+ * @returns 
+ */
 const getResponses = (responses) => {
     const res = responses['200']
     if (res.schema) {
@@ -171,14 +180,90 @@ const getResponses = (responses) => {
 }
 
 /**
+ * 处理definitions
+ * @param {*} definitions 
+ */
+const handleDefinitions = (definitions) => {
+    const typeMap = {}
+    const apiDefinitions = Object.keys(definitions)
+    const _enumMap = []
+    apiDefinitions.map(definitionsKey => {
+        const definitionsItem = definitions[definitionsKey]
+        const { title, type, description, properties } = definitionsItem
+        const { propertyArr, enumInfo } = getPropertyAndEnumInfo(properties)
+        typeMap[title] = {
+            name: title,
+            type: type,
+            description: description || '缺少注释',
+            property: properties ? propertyArr : []
+        }
+        isEmptyObj(enumInfo) && _enumMap.push(enumInfo)
+    })
+    return { typeMap, _enumMap }
+}
+
+/**
+ * 处理获取typeMap中的properties 和枚举Info
+ * @param {*} properties 
+ * @returns 
+ */
+const getPropertyAndEnumInfo = (properties) => {
+    const propertyArr = []
+    let enumInfo = {}
+    const propertyInfo = Object.keys(properties)
+    propertyInfo.forEach(propertyKey => {
+        const _item = properties[propertyKey]
+        const { type, format, description, items } = _item;
+        const propertyItem = {
+            name: propertyKey,
+            type: items
+                ? getRealType(items)
+                : format == 'int64'
+                    ? 'string'
+                    : toTypescriptType(type),
+            description: description || '注释丢失',
+        }
+        propertyArr.push(propertyItem)
+        if (_item.enum) {
+            enumInfo[`${propertyKey}ENUM`] = _item.enum
+        }
+    })
+    return { propertyArr, enumInfo }
+}
+
+/**
+ * 写入文件
+ * @param {*} name 
+ * @param {*} data 
+ * @param {*} dirname 
+ */
+const writeFile = (name, data, dirname) => {
+    const _path = process.cwd() + dirname
+    mkdir(_path)
+    const filePath = path.resolve(_path, `${name}.ts`)
+    fs.writeFileSync(filePath, data)
+}
+/**
+ * 判断是否空对象
+ * @param {*} obj 
+ * @returns 
+ */
+const isEmptyObj = (obj) => {
+    for (let item in obj) {
+        return true
+    }
+    return false
+}
+/**
  * 解析swagger
  * @param {*} swaggerJson 
  * @param {*} dirname 
  */
 const parseData = (swaggerJson, dirname) => {
 
-    const paths = handlePath(swaggerJson.paths)
-    console.log('paths', JSON.stringify(paths))
+    // const paths = handlePath(swaggerJson.paths)
+    const { typeMap, _enumMap: enumMap } = handleDefinitions(swaggerJson.definitions)
+    console.log('paths', JSON.stringify(typeMap), JSON.stringify(enumMap))
 
 }
 

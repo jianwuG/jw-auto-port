@@ -1,13 +1,13 @@
 module.exports = {
     "swagger": "2.0",
     "info": {
-        "description": "xxx swagger Application.",
+        "description": "xxxx swagger Application.",
         "version": "1.0.0",
-        "title": "xxx swagger Application",
+        "title": "xxxx swagger Application",
         "termsOfService": "TERMS OF SERVICE URL",
         "contact": {
-            "name": "xxx",
-            "url": "http://www.xxx.com/",
+            "name": "xxxx",
+            "url": "http://xxxx.com/",
             "email": "xxxx.com"
         },
         "license": {
@@ -15,22 +15,22 @@ module.exports = {
             "url": "LICENSE URL"
         }
     },
-    "host": "xxxx.cn",
-    "basePath": "/api/pm-scp",
+    "host": "xxxx",
+    "basePath": "xxx",
     "tags": [
         {
-            "name": "promotion",
-            "description": "广告配置"
+            "name": "product",
+            "description": "Product Controller"
         }
     ],
     "paths": {
-        "/promotion/updatePromotion": {
+        "/product/createOrUpdate": {
             "post": {
                 "tags": [
-                    "promotion"
+                    "product"
                 ],
-                "summary": "广告详情-修改广告配置",
-                "operationId": "updatePromotionUsingPOST",
+                "summary": "创建或编辑商品",
+                "operationId": "createOrUpdateUsingPOST",
                 "consumes": [
                     "application/json"
                 ],
@@ -44,8 +44,8 @@ module.exports = {
                         "description": "vo",
                         "required": true,
                         "schema": {
-                            "originalRef": "UpdatePromotionVo",
-                            "$ref": "#/definitions/UpdatePromotionVo"
+                            "originalRef": "CreateOrUpdateProductVo",
+                            "$ref": "#/definitions/CreateOrUpdateProductVo"
                         }
                     }
                 ],
@@ -75,55 +75,68 @@ module.exports = {
         }
     },
     "definitions": {
-        "UpdatePromotionVo": {
+        "CreateOrUpdateProductVo": {
             "type": "object",
             "properties": {
-                "configs": {
+                "displayOriginalPrice": {
+                    "type": "string",
+                    "description": "原价（单位：元）"
+                },
+                "firstImageUrl": {
+                    "type": "string",
+                    "description": "商品头图url"
+                },
+                "firstOrderPrice": {
+                    "type": "string",
+                    "description": "首单优惠价（单位：元），可不传"
+                },
+                "id": {
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "商品id，创建时传入0",
+                    "minimum": 0.0,
+                    "exclusiveMinimum": false
+                },
+                "imageUrls": {
                     "type": "array",
-                    "description": "配置项",
+                    "description": "商品详情图片url列表，最多5张",
                     "items": {
-                        "originalRef": "PromotionTipConfigVo",
-                        "$ref": "#/definitions/PromotionTipConfigVo"
+                        "type": "string"
                     }
                 },
-                "id": {
+                "limitAmount": {
                     "type": "integer",
-                    "format": "int64",
-                    "description": "序号"
+                    "format": "int32",
+                    "description": "限购数量",
+                    "minimum": 1.0,
+                    "exclusiveMinimum": false
                 },
-                "isShow": {
-                    "type": "boolean",
-                    "description": "是否展示"
+                "orderNumber": {
+                    "type": "integer",
+                    "format": "int32",
+                    "description": "排序号",
+                    "minimum": 1.0,
+                    "exclusiveMinimum": false
+                },
+                "productName": {
+                    "type": "string",
+                    "description": "商品名称，最长20字符"
+                },
+                "productState": {
+                    "type": "string",
+                    "description": "商品状态，1-下架，2-上架",
+                    "enum": [
+                        "UN_KNOWN",
+                        "UN_SALE",
+                        "SALE_ING"
+                    ]
+                },
+                "unitPrice": {
+                    "type": "string",
+                    "description": "单位（单位：元）"
                 }
             },
-            "title": "UpdatePromotionVo"
-        },
-        "PromotionTipConfigVo": {
-            "type": "object",
-            "properties": {
-                "configKey": {
-                    "type": "string",
-                    "description": "配置项的Key"
-                },
-                "configKeyName": {
-                    "type": "string",
-                    "description": "编辑项的字段名"
-                },
-                "configValue": {
-                    "type": "string",
-                    "description": "配置项的Value"
-                },
-                "description": {
-                    "type": "string",
-                    "description": "编辑项的描述"
-                },
-                "id": {
-                    "type": "integer",
-                    "format": "int64",
-                    "description": "广告配置项信息表序号"
-                }
-            },
-            "title": "PromotionTipConfigVo"
+            "title": "CreateOrUpdateProductVo"
         },
         "SimpleResponse«boolean»": {
             "type": "object",
@@ -143,6 +156,32 @@ module.exports = {
                 }
             },
             "title": "SimpleResponse«boolean»"
+        },
+        "enumDto": {
+            "type": "object",
+            "properties": {
+                "key": {
+                    "type": "integer",
+                    "format": "int32"
+                },
+                "value": {
+                    "type": "string"
+                }
+            },
+            "title": "enumDto"
+        },
+        "WhitelistEnumsDto": {
+            "type": "object",
+            "properties": {
+                "applyStateEnums": {
+                    "type": "array",
+                    "items": {
+                        "originalRef": "enumDto",
+                        "$ref": "#/definitions/enumDto"
+                    }
+                }
+            },
+            "title": "WhitelistEnumsDto"
         }
     }
 }

@@ -1,4 +1,4 @@
-const next = require('./../../mock/next')
+const next = require('../../mock/next')
 
 module.exports = {
     outputDir: '/src/common/api',
