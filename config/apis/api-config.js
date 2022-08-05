@@ -6,7 +6,7 @@ module.exports = {
         {
             swaggerUrl: next,
             outputDir: '/src/common/api/next',
-            tag: true,
+            isCreate: true,
         },
     ],
 }
