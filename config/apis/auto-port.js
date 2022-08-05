@@ -225,10 +225,47 @@ const getPropertyAndEnumInfo = (properties) => {
         }
         propertyArr.push(propertyItem)
         if (_item.enum) {
-            enumInfo[`${propertyKey}ENUM`] = _item.enum
+            enumInfo[`${propertyKey}Enum`] = _item.enum
         }
     })
     return { propertyArr, enumInfo }
+}
+/**
+ * 生成EnumCode
+ * @param {*} enumMap 
+ */
+const generateEnumCode = (enumMap) => {
+    const enumCodeArr = []
+    enumMap.forEach(enumItem => {
+        const key = Object.keys(enumItem)[0]
+        enumCodeArr.push(` export enum ${key} {
+            ${enumItem[key].join(',\n')}
+        }`)
+    })
+    return enumCodeArr.join('\n')
+}
+/**
+ * 生成typeCode
+ * @param {*} enumMap 
+ */
+const generateTypeCode = (typeCode) => {
+    const typeCodeArr = []
+    const typeCodeData = Object.keys(typeCode)
+    typeCodeData.forEach(typeCodeDataKey => {
+        const _item = typeCode[typeCodeDataKey]
+
+        const { property, description, name } = _item
+
+        const _name = name.split("«")[0]// 处理类 SimpleResponse«boolean»
+        typeCodeArr.push(`/** ${description} **/
+        export interface ${_name} {
+        ${property.map(propertyItem => {
+            const { name, type, description } = propertyItem
+            return `${name}:${type}, //${description}`
+        }).join('\n')}
+        }`)
+    })
+    return typeCodeArr.join('\n')
 }
 
 /**
@@ -254,6 +291,7 @@ const isEmptyObj = (obj) => {
     }
     return false
 }
+
 /**
  * 解析swagger
  * @param {*} swaggerJson 
@@ -261,10 +299,16 @@ const isEmptyObj = (obj) => {
  */
 const parseData = (swaggerJson, dirname) => {
 
-    // const paths = handlePath(swaggerJson.paths)
+    const paths = handlePath(swaggerJson.paths)
     const { typeMap, _enumMap: enumMap } = handleDefinitions(swaggerJson.definitions)
-    console.log('paths', JSON.stringify(typeMap), JSON.stringify(enumMap))
-
+    const enumCode = generateEnumCode(enumMap)
+    if (enumCode) {
+        writeFile('enum', enumCode, dirname)
+    }
+    const typeCode = generateTypeCode(typeMap)
+    if (typeCode) {
+        writeFile('type', typeCode, dirname)
+    }
 }
 
 createApi()
