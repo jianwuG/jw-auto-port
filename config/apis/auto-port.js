@@ -36,11 +36,11 @@ const createApi = () => {
         if (api.isCreate) {
             try {
                 ////真实请求swaggerUrl地址
-                const result = await axios.get(api.swaggerUrl)
-                const data = result.data
+                // const result = await axios.get(api.swaggerUrl)
+                // const data = result.data
 
-                //// 当前项目本地文件演示
-                // const data = api.swaggerUrl
+                // 当前项目本地文件演示
+                const data = api.swaggerUrl
                 parseData(data, api.outputDir)
             } catch (err) {
                 console.log(err)
@@ -104,10 +104,20 @@ const getParams = (params) => {
                 name: paramsItem.name,
                 desc: paramsItem.description || '描述缺失',
                 type: null, //类型
-                originType: paramsItem.schema ? paramsItem.schema : paramsItem.type, //源类型
+                originType: null, //源类型
                 required: paramsItem.schema ? true : paramsItem.required,
                 simpleType: paramsItem.schema ? false : true, //是否基础类型
             }
+
+            //处理paths中
+            if (paramsItem.schema) {
+                const _schema = paramsItem.schema
+                _schema.$ref = _schema.$ref && splitRealType(_schema.$ref)
+                _schema.originType = _schema.originType && splitRealType(_schema.originType)
+                _item.originType = _schema || paramsItem.type
+            }
+
+
             _item.type = paramsItem.schema
                 ? getRealType(paramsItem.schema)
                 : paramsItem.format == 'int64'
@@ -148,12 +158,24 @@ const toTypescriptType = (type) => {
  */
 const getRealType = (schema) => {
     if (schema) {
-        return schema.originalRef || schema.$ref?.split('#/definitions/')[1]
+        return splitRealType(schema.originalRef || schema.$ref?.split('#/definitions/')[1])
     } else {
         return 'any'
     }
-
 }
+
+/**
+ *  const _name = name.split("«")[0]// 处理类 SimpleResponse«List«ChannelFeeConfigDto»»  => SimpleResponseListChannelFeeConfigDto
+ * @param {*} name 
+ * @returns 
+ */
+const splitRealType = (name) => {
+    if (!name) {
+        return ''
+    }
+    return name?.split('«').join('').split('»').reduce((a, b) => { return `${a}${b}` })
+}
+
 
 /**
  * 获取返回data
@@ -226,11 +248,9 @@ const getPropertyAndEnumInfo = (properties) => {
         const { type, format, description, items } = _item;
         const propertyItem = {
             name: propertyKey,
-            type: items
-                ? getRealType(items)
-                : format == 'int64'
-                    ? 'string'
-                    : toTypescriptType(type),
+            type: format == 'int64'
+                ? 'string'
+                : toTypescriptType(type),
             description: description || '注释丢失',
         }
         propertyArr.push(propertyItem)
@@ -268,13 +288,14 @@ const generateTypeCode = (typeCode, enumMap) => {
 
         const { property, description, name } = _item
 
-        // const _name = name.split("«")[0]// 处理类 SimpleResponse«boolean»
-        const _name = name.split('«').join('').split('»').reduce((a, b) => { return `${a}${b}` })
+        const _name = splitRealType(name)
         typeCodeArr.push(`/** ${description} **/
         export interface ${_name} {
         ${property.map(propertyItem => {
             const { name, type, description } = propertyItem
             let _type = type
+
+            // 替换枚举类型
             const check = enumMap.find(enumMapItem => Object.keys(enumMapItem)[0] === `${name}Enum`)
             if (check) {
                 _type = `${name}Enum`
@@ -325,7 +346,102 @@ const isEmptyObj = (obj) => {
     }
     return false
 }
+/**
+ * 生成API文件
+ * @param {*} paths 
+ * @param {*} typeMap 
+ * @param {*} enumMap 
+ */
+const generateApiType = (paths, typeMap, enumMap) => {
+    const apiCodes = {}
+    Object.keys(paths).forEach(path => {
+        const apiText = []
+        const usedType = []
+        const usedEnum = [] //暂时没有
+        const moduleApiData = paths[path]
 
+        moduleApiData.forEach(api => {
+            const { summary, name, method, url, returnData, params } = api
+            const endParam = [...api.params]
+            const typeCodeData = Object.keys(typeMap)
+            endParam.push({
+                name: 'options',
+                type: 'AxiosRequestConfig | undefined',
+                required: false,
+                desc: '',
+                originType: '',
+                simpleType: false,
+            })
+            api.params.forEach(param => {
+                if (!param?.simpleType) {
+                    usedType.push(param.type)
+                }
+            })
+
+            if (!returnData?.simpleType) {
+                usedType.push(returnData.type)
+            }
+
+            let paramToken = ''
+            paramToken = `${params
+                .map(paramsItem => {
+                    return paramsItem.name
+                })
+                .join(',')}`
+            if (method === 'get') {
+                if (paramToken) {
+                    paramToken = `,{params:{${paramToken}},...options}`
+                } else {
+                    paramToken = `,{...options}`
+                }
+            }
+            else if (method === 'post') {
+                if (params.length === 1) {
+                    paramToken = params[0].simpleType ? `,{${params[0].name},options}` : `,${params[0].name},options`
+                } else {
+                    paramToken = `,{${paramToken}},options`
+                }
+            }
+            const _name = /^.*[A-Z]+.*/.test(name) ? name : url.split('/').reduce((pre, next) => `${pre}${titleCase(next)}`)   //存在同名的，一般是单个单词的
+            apiText.push(`
+                /** ${summary} */
+                export const ${_name} =(${endParam
+                    .map(a => `${a.name}${a.name == 'options' ? '?' : ''}:${a.type}`)
+                    .join(',')}): AxiosPromise<${returnData.type || null}> => {
+                    return http.${method}('${url}'${paramToken})
+            }`)
+
+        })
+
+
+        const _usedType = []
+        usedType.forEach(usedTypeItem => {
+            if (!_usedType.includes(usedTypeItem) && !!usedTypeItem) {
+                _usedType.push(usedTypeItem)
+            }
+        })
+
+        if (_usedType.length) {
+            apiText.unshift(`
+        import {${_usedType.join(',')}} from './type'
+        `)
+        }
+        apiText.unshift(apiConfig.serviceTemplate)
+        apiCodes[path] = apiText.join('\n')
+    })
+    return apiCodes
+}
+
+/**
+ * 单词首字母大写
+ * @param {*} str 
+ * @returns 
+ */
+const titleCase = (str) => {
+
+    return str.slice(0, 1).toUpperCase() + str.slice(1).toLowerCase();
+
+}
 /**
  * 解析swagger
  * @param {*} swaggerJson 
@@ -343,6 +459,10 @@ const parseData = (swaggerJson, dirname) => {
     if (typeCode) {
         writeFile('type', typeCode, dirname)
     }
+    const codes = generateApiType(paths, typeMap, enumMap)
+    Object.keys(codes).forEach(key => {
+        writeFile(key, codes[key], dirname)
+    })
 }
 
 createApi()
