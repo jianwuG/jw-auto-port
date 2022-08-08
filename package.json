@@ -1,7 +1,7 @@
 {
-  "name": "jw-auto-prot",
+  "name": "jw-auto-port",
   "version": "0.0.2",
-  "description": "auto-prot",
+  "description": "auto-port",
   "main": "index.js",
   "dependencies": {
     "axios": "^0.27.2"
@@ -17,12 +17,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/jianwuG/jw-auto-prot.git"
+    "url": "git+https://github.com/jianwuG/jw-auto-port.git"
   },
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/jianwuG/jw-auto-prot/issues"
+    "url": "https://github.com/jianwuG/jw-auto-port/issues"
   },
-  "homepage": "https://github.com/jianwuG/jw-auto-prot#readme"
+  "homepage": "https://github.com/jianwuG/jw-auto-port#readme"
 }
