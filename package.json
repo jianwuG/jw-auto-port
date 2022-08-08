@@ -11,8 +11,9 @@
     "vitepress": "^1.0.0-alpha.4"
   },
   "scripts": {
-    "prettier": "prettier --write \"src/**/**/*.{js,jsx,vue,tsx,json,css,scss,less,md}\"",
-    "api": "node ./config/apis/auto-port.js && npm run prettier "
+    "apiDelete": "node ./config/apis/api-delete.js",
+    "prettier": "prettier --write \"src/**/*.{js,jsx,vue,tsx,json,css,scss,less,md,ts}\"",
+    "api": "npm run apiDelete && node ./config/apis/auto-port.js && npm run prettier "
   },
   "repository": {
     "type": "git",

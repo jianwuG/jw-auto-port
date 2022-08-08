@@ -36,11 +36,11 @@ const createApi = () => {
         if (api.isCreate) {
             try {
                 ////真实请求swaggerUrl地址
-                // const result = await axios.get(api.swaggerUrl) 
-                // const data = result.data
+                const result = await axios.get(api.swaggerUrl)
+                const data = result.data
 
                 //// 当前项目本地文件演示
-                const data = api.swaggerUrl
+                // const data = api.swaggerUrl
                 parseData(data, api.outputDir)
             } catch (err) {
                 console.log(err)
@@ -190,14 +190,23 @@ const handleDefinitions = (definitions) => {
     apiDefinitions.map(definitionsKey => {
         const definitionsItem = definitions[definitionsKey]
         const { title, type, description, properties } = definitionsItem
-        const { propertyArr, enumInfo } = getPropertyAndEnumInfo(properties)
-        typeMap[title] = {
-            name: title,
-            type: type,
-            description: description || '缺少注释',
-            property: properties ? propertyArr : []
+        if (properties) {
+            const { propertyArr, enumInfo } = getPropertyAndEnumInfo(properties)
+            typeMap[title] = {
+                name: title,
+                type: type,
+                description: description || '缺少注释',
+                property: properties ? propertyArr : []
+            }
+            if (isEmptyObj(enumInfo)) {
+                // 重复枚举去重
+                const check = _enumMap.every(item => Object.keys(item)[0] !== Object.keys(enumInfo)[0])
+                if (check) {
+                    _enumMap.push(enumInfo)
+                }
+
+            }
         }
-        isEmptyObj(enumInfo) && _enumMap.push(enumInfo)
     })
     return { typeMap, _enumMap }
 }
@@ -209,6 +218,7 @@ const handleDefinitions = (definitions) => {
  */
 const getPropertyAndEnumInfo = (properties) => {
     const propertyArr = []
+
     let enumInfo = {}
     const propertyInfo = Object.keys(properties)
     propertyInfo.forEach(propertyKey => {
@@ -245,10 +255,12 @@ const generateEnumCode = (enumMap) => {
     return enumCodeArr.join('\n')
 }
 /**
- * 生成typeCode
+ * 生成typeCode 引入enum.ts
+ * @param {*} typeCode 
  * @param {*} enumMap 
+ * @returns 
  */
-const generateTypeCode = (typeCode) => {
+const generateTypeCode = (typeCode, enumMap) => {
     const typeCodeArr = []
     const typeCodeData = Object.keys(typeCode)
     typeCodeData.forEach(typeCodeDataKey => {
@@ -256,15 +268,37 @@ const generateTypeCode = (typeCode) => {
 
         const { property, description, name } = _item
 
-        const _name = name.split("«")[0]// 处理类 SimpleResponse«boolean»
+        // const _name = name.split("«")[0]// 处理类 SimpleResponse«boolean»
+        const _name = name.split('«').join('').split('»').reduce((a, b) => { return `${a}${b}` })
         typeCodeArr.push(`/** ${description} **/
         export interface ${_name} {
         ${property.map(propertyItem => {
             const { name, type, description } = propertyItem
-            return `${name}:${type}, //${description}`
+            let _type = type
+            const check = enumMap.find(enumMapItem => Object.keys(enumMapItem)[0] === `${name}Enum`)
+            if (check) {
+                _type = `${name}Enum`
+            }
+            return `${name}:${_type}, //${description}`
         }).join('\n')}
         }`)
     })
+
+
+    // 引入enum.ts文件
+    const usedEnum = []
+    enumMap.forEach(enumMapItem => {
+        const type = Object.keys(enumMapItem)[0]
+        if (!usedEnum.includes(type)) {
+            usedEnum.push(type)
+        }
+    })
+
+    if (usedEnum.length) {
+        typeCodeArr.unshift(`
+        import {${usedEnum.join(',')}} from './enum'
+        `)
+    }
     return typeCodeArr.join('\n')
 }
 
@@ -305,7 +339,7 @@ const parseData = (swaggerJson, dirname) => {
     if (enumCode) {
         writeFile('enum', enumCode, dirname)
     }
-    const typeCode = generateTypeCode(typeMap)
+    const typeCode = generateTypeCode(typeMap, enumMap)
     if (typeCode) {
         writeFile('type', typeCode, dirname)
     }
